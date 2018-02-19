@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<script src="/socket.io/socket.io.js"></script>
+    <script src="https://npmcdn.com/babel-core@5.8.38/browser.min.js"></script>
+    <script type="text/babel" >
+        "use strict";
+		
+		let socket;
+		
+		var canvas, ctx;
+		var feed, amount;
+		
+		let bigBoi = {};
+		
+		let color;
+		
+		let score = 0;
+		let scoreText;
+		
+		
+		const init = () => {
+			canvas = document.querySelector('#mainCanvas');
+			feed = document.querySelector('#feed');
+			scoreText = document.querySelector('#myScore');
+			feed.addEventListener('click', feedClicked);
+			ctx = canvas.getContext('2d');
+			ctx.fillStyle = "black";
+				
+			socket = io.connect();
+			
+			socket.on('updated', updateBoi);
+			
+			socket.on('win', triggerWin);
+			socket.on('lose', triggerLose);
+			
+		};
+		
+		
+		const updateBoi = (data) => {
+			bigBoi = data;
+			draw();
+		};
+		
+		const triggerLose = () => {
+			scoreText.innerHTML = "LOSER";
+			feed.style.visibility = 'hidden';
+		};
+		
+		const triggerWin = () => {
+			//here is likely where id pass in an array
+			//of objects containing user scores, then sort them to display to everyone
+			scoreText.innerHTML = `Winner! ${score}`;
+			feed.style.visibility = 'hidden';
+		}
+		
+		const draw = () => {
+			ctx.clearRect(0,0, canvas.width, canvas.height);
+			
+			console.log(bigBoi);
+			console.log(bigBoi.bigColor);
+			console.log(bigBoi.bigLimit);
+
+			let xPos = canvas.width/2 - bigBoi.bigLimit/4
+			let yPos = canvas.height/2 - bigBoi.bigLimit/4
+			
+			ctx.fillStyle = bigBoi.bigColor;
+			ctx.fillRect(xPos,yPos, bigBoi.bigLimit/2, bigBoi.bigLimit/2)
+			ctx.beginPath();
+			ctx.lineWidth = "2";
+			ctx.strokeStyle = "black";
+			ctx.rect(xPos, yPos, bigBoi.bigLimit/2, bigBoi.bigLimit/2);
+			ctx.stroke();
+		};
+		
+		const feedClicked = (e) => {
+		
+			amount = document.querySelector('#amount').value;
+			//check if num
+			if (isNaN(amount) || amount == '') {
+				return;
+			}
+			
+			amount = parseInt(amount);
+			
+			score += amount;
+			scoreText.innerHTML = score;
+			
+			//tell the server that their boy got fed
+			socket.emit("feedBoi", amount);
+		};
+		
+
+		window.onload = init;
+    
+    </script>
+	<style>
+	  #mainCanvas {
+         background: #ffffff;
+         z-index: 0;
+         left: 10px;
+         top: 10px;
+         box-shadow: 4px 4px 8px rgba(0,0,0,0.5);
+      }
+	  
+	  p {
+		border-style: solid;
+		border-width: 3px;
+	  }
+	  
+	  #feed {
+	  position: absolute;
+	  left: 10px;
+	  top: 520px;
+	  }
+	  
+	  #amount {
+	  position: absolute;
+	  left: 50px;
+	  top: 520px;
+	  }
+	  
+	  #myScore {
+	  position: absolute;
+	  left: 50%;
+	  top: 520px;
+	  }
+		body {
+			margin: 0;
+			display: flex;
+			
+			justify-content: center;
+			align-items: center;
+		}
+	  </style>
+</head>
+<body>
+
+<canvas id="mainCanvas" width="750" height="500">:c</canvas>
+	<input id="feed" type='button' value='Feed'/>
+	<input id="amount" name="user" type="text"/>
+	<h2><span id="myScore"></span></h2>
+	
+	<p> Feed the boi on the screen and gain points. But if you're the one to feed him
+	too much, you lose. </p>
+	
+	<p> When hes half full, he will turn from black to dark red. </p>
+	<p> When hes 90% full, he will turn a brighter red. </p>
+	<p> You'll know when he's 100% full. </p>
+	
+
+</body>
+</html>
